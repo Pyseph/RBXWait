@@ -7,37 +7,39 @@ function heap.insert(value, data)
 		data = data
 	}
 
-	local parentNode = heap[#heap]
-	local childNode = heap[math.floor(#heap / 2)]
+	local parentNode = heap[insertPos]
+	local childNode = heap[math.floor(insertPos / 2)]
 	-- if parent has less time left than child, swap parent and child
 	-- node with least time left will be at the end
 
-	local startTime = time()
-	while #heap > 1 and startTime - parentNode.data[2] - parentNode.value > startTime - childNode.data[2] - childNode.value do
-		local childPos = math.floor(#heap / 2)
-		heap[#heap], heap[childPos] = heap[childPos], heap[#heap]
-		insertPos = childPos
+	local start = time()
+	while insertPos > 1 and start - parentNode.data[2] - parentNode.value > start - childNode.data[2] - childNode.value do
+		local childPos = math.floor(insertPos / 2)
+		heap[insertPos], heap[childPos] = heap[childPos], heap[insertPos]
+		insertPos = math.floor(insertPos / 2)
 	end
-	if data[4] == 2
 end
-
 function heap.extract()
-	local insertPos = 1
-	heap[1], heap[#heap] = heap[#heap], nil
+	if #heap < 2 then
+		heap[1] = nil
+		return
+	end
+	heap[1] = table.remove(heap)
 
-	local startTime = time()
+	local insertPos = 1
+	local start = time()
 	while insertPos < #heap do
 		local childL, childR = heap[2*insertPos], heap[2*insertPos+1]
-		if not (childL and childR) then
+		if not childL or not childR then
 			break
 		end
 
-		local smallerChild = 2*insertPos + (startTime - childL.data[2] - childL.value < startTime - childR.data[2] - childR.value and 0 or 1)
+		local smallerChild = 2*insertPos + (start - childL.data[2] - childL.value < start - childR.data[2] - childR.value and 0 or 1)
 
 		local child = heap[smallerChild]
 		local parent = heap[insertPos]
 
-		if startTime - parent.data[2] - parent.value < startTime - child.data[2] - child.value then
+		if start - parent.data[2] - parent.value < start - child.data[2] - child.value then
 			heap[smallerChild], heap[insertPos] = parent, child
 		end
 		insertPos = smallerChild
@@ -50,16 +52,17 @@ game:GetService('RunService').Stepped:Connect(function()
 		return
 	end
 
-	local startTime = time()
-	for _ = 1, 100 do
-		local threadData = PrioritizedThread.data
-		local YieldTime = startTime - threadData[2]
-		if threadData[3] - YieldTime <= 0 then
+	local CPUTime = time()
+	for _ = 1, 50000 do
+		PrioritizedThread = PrioritizedThread.data
+		local YieldTime = CPUTime - PrioritizedThread[2]
+		if PrioritizedThread[3] - YieldTime <= 0 then
 			heap.extract()
-			coroutine.resume(threadData[1], YieldTime, startTime)
+			coroutine.resume(PrioritizedThread[1], YieldTime, CPUTime)
+			
 			PrioritizedThread = heap[1]
-			if not PrioritizedThread then
-				break
+			if not PrioritizedThread then 
+				break 
 			end
 		else
 			break
@@ -67,7 +70,7 @@ game:GetService('RunService').Stepped:Connect(function()
 	end
 end)
 
-return function(Time, Index)
-	heap.insert(Time or 0, {coroutine.running(), time(), Time or 0, Index})
+return function(Time)
+	heap.insert(Time or 0, {coroutine.running(), time(), Time or 0})
 	return coroutine.yield()
 end
