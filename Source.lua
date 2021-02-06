@@ -1,43 +1,46 @@
 local heap = {}
 local currentSize = 0
-function heap.insert(pos, data)
+
+function insert(yieldTime, data)
 	currentSize += 1
+	local start = time()
 	heap[currentSize] = {
-		pos = pos,
+		pos = start - yieldTime,
 		data = data,
-		time = time()
+		time = start
 	}
 
-	local parentIdx = pos/2
-	local currentIdx = pos
+	-- bubble up
+	local pos = currentSize
 
-	while currentIdx > 1 and heap[parentIdx].time - heap[parentIdx].pos < heap[currentIdx].time - heap[currentIdx].pos do
+	local parentIdx = math.floor(pos/2)
+	local currentIdx = pos
+	while currentIdx > 1 and heap[parentIdx].pos < heap[currentIdx].pos do
 		heap[currentIdx], heap[parentIdx] = heap[parentIdx], heap[currentIdx]
 		currentIdx = parentIdx
-		parentIdx /= 2
+		parentIdx = math.floor(parentIdx/2)
 	end
 end
-
-function heap.extractMin()
+function extractMin()
 	if currentSize < 2 then
 		heap[1] = nil
 		currentSize = 0
 		return
 	end
 
+	heap[1], heap[currentSize] = heap[currentSize], nil
+	-- sink down
 	local k = 1
-	while true do
-		heap[1], heap[currentSize] = heap[currentSize], nil
-
+	while k < currentSize do
 		local smallest = k
 
 		local leftChildIdx = 2*k
 		local rightChildIdx = 2*k+1
 
-		if leftChildIdx < currentSize and heap[smallest].time - heap[smallest].pos < heap[leftChildIdx].time - heap[leftChildIdx].pos then
+		if leftChildIdx < currentSize and heap[smallest].pos < heap[leftChildIdx].pos then
 			smallest = leftChildIdx
 		end
-		if rightChildIdx < currentSize and heap[smallest].time - heap[smallest].pos < heap[rightChildIdx].time - heap[rightChildIdx].pos then
+		if rightChildIdx < currentSize and heap[smallest].pos < heap[rightChildIdx].pos then
 			smallest = rightChildIdx
 		end
 
@@ -48,7 +51,6 @@ function heap.extractMin()
 		heap[k], heap[smallest] = heap[smallest], heap[k]
 		k = smallest
 	end
-
 	currentSize -= 1
 end
 
@@ -63,7 +65,7 @@ game:GetService('RunService').Stepped:Connect(function()
 	for _ = 1, 10000 do
 		local YieldTime = start - PrioritizedThread.time
 		if PrioritizedThread.data[2] - YieldTime <= 0 then
-			heap.extractMin()
+			extractMin()
 			coroutine.resume(PrioritizedThread.data[1], YieldTime, start)
 
 			PrioritizedThread = heap[1]
@@ -77,6 +79,6 @@ game:GetService('RunService').Stepped:Connect(function()
 end)
 
 return function(Time)
-	heap.insert(Time or 0, {coroutine.running(), Time or 0})
+	insert(Time or 0, {coroutine.running(), Time or 0})
 	return coroutine.yield()
 end
