@@ -1,49 +1,55 @@
 local heap = {}
-
-function heap.insert(value, data)
-	local insertPos = #heap + 1
-	heap[insertPos] = {
-		value = value,
-		data = data
+local currentSize = 0
+function heap.insert(pos, data)
+	currentSize += 1
+	heap[currentSize] = {
+		pos = pos,
+		data = data,
+		time = time()
 	}
 
-	local parentNode = heap[insertPos]
-	local childNode = heap[math.floor(insertPos / 2)]
-	-- if parent has less time left than child, swap parent and child
-	-- node with least time left will be at the end
+	local parentIdx = pos/2
+	local currentIdx = pos
 
-	local start = time()
-	while insertPos > 1 and start - parentNode.data[2] - parentNode.value > start - childNode.data[2] - childNode.value do
-		local childPos = math.floor(insertPos / 2)
-		heap[insertPos], heap[childPos] = heap[childPos], heap[insertPos]
-		insertPos = math.floor(insertPos / 2)
+	while currentIdx > 1 and heap[parentIdx].time - heap[parentIdx].pos < heap[currentIdx].time - heap[currentIdx].pos do
+		heap[currentIdx], heap[parentIdx] = heap[parentIdx], heap[currentIdx]
+		currentIdx = parentIdx
+		parentIdx /= 2
 	end
 end
-function heap.extract()
-	if #heap < 2 then
+
+function heap.extractMin()
+	if currentSize < 2 then
 		heap[1] = nil
+		currentSize = 0
 		return
 	end
-	heap[1] = table.remove(heap)
 
-	local insertPos = 1
-	local start = time()
-	while insertPos < #heap do
-		local childL, childR = heap[2*insertPos], heap[2*insertPos+1]
-		if not childL or not childR then
+	local k = 1
+	while true do
+		heap[1], heap[currentSize] = heap[currentSize], nil
+
+		local smallest = k
+
+		local leftChildIdx = 2*k
+		local rightChildIdx = 2*k+1
+
+		if leftChildIdx < currentSize and heap[smallest].time - heap[smallest].pos < heap[leftChildIdx].time - heap[leftChildIdx].pos then
+			smallest = leftChildIdx
+		end
+		if rightChildIdx < currentSize and heap[smallest].time - heap[smallest].pos < heap[rightChildIdx].time - heap[rightChildIdx].pos then
+			smallest = rightChildIdx
+		end
+
+		if smallest == k then
 			break
 		end
 
-		local smallerChild = 2*insertPos + (start - childL.data[2] - childL.value < start - childR.data[2] - childR.value and 0 or 1)
-
-		local child = heap[smallerChild]
-		local parent = heap[insertPos]
-
-		if start - parent.data[2] - parent.value < start - child.data[2] - child.value then
-			heap[smallerChild], heap[insertPos] = parent, child
-		end
-		insertPos = smallerChild
+		heap[k], heap[smallest] = heap[smallest], heap[k]
+		k = smallest
 	end
+
+	currentSize -= 1
 end
 
 game:GetService('RunService').Stepped:Connect(function()
@@ -52,14 +58,14 @@ game:GetService('RunService').Stepped:Connect(function()
 		return
 	end
 
-	local CPUTime = time()
-	for _ = 1, 50000 do
-		PrioritizedThread = PrioritizedThread.data
-		local YieldTime = CPUTime - PrioritizedThread[2]
-		if PrioritizedThread[3] - YieldTime <= 0 then
-			heap.extract()
-			coroutine.resume(PrioritizedThread[1], YieldTime, CPUTime)
-			
+	local start = time()
+	-- while true do loops could potentially trigger script exhaustion, if you were to have >50k yields for some reason...
+	for _ = 1, 10000 do
+		local YieldTime = start - PrioritizedThread.time
+		if PrioritizedThread.data[2] - YieldTime <= 0 then
+			heap.extractMin()
+			coroutine.resume(PrioritizedThread.data[1], YieldTime, start)
+
 			PrioritizedThread = heap[1]
 			if not PrioritizedThread then 
 				break 
@@ -71,6 +77,6 @@ game:GetService('RunService').Stepped:Connect(function()
 end)
 
 return function(Time)
-	heap.insert(Time or 0, {coroutine.running(), time(), Time or 0})
+	heap.insert(Time or 0, {coroutine.running(), Time or 0})
 	return coroutine.yield()
 end
