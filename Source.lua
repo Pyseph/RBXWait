@@ -15,7 +15,7 @@ function insert(yieldTime, data)
 
 	local parentIdx = math.floor(pos/2)
 	local currentIdx = pos
-	while currentIdx > 1 and heap[parentIdx].pos < heap[currentIdx].pos do
+	while currentIdx > 1 and start-heap[parentIdx].pos < start-heap[currentIdx].pos do
 		heap[currentIdx], heap[parentIdx] = heap[parentIdx], heap[currentIdx]
 		currentIdx = parentIdx
 		parentIdx = math.floor(parentIdx/2)
@@ -31,16 +31,17 @@ function extractMin()
 	heap[1], heap[currentSize] = heap[currentSize], nil
 	-- sink down
 	local k = 1
+	local start = time()
 	while k < currentSize do
 		local smallest = k
 
 		local leftChildIdx = 2*k
 		local rightChildIdx = 2*k+1
 
-		if leftChildIdx < currentSize and heap[smallest].pos < heap[leftChildIdx].pos then
+		if leftChildIdx < currentSize and start-heap[smallest].pos < start-heap[leftChildIdx].pos then
 			smallest = leftChildIdx
 		end
-		if rightChildIdx < currentSize and heap[smallest].pos < heap[rightChildIdx].pos then
+		if rightChildIdx < currentSize and start-heap[smallest].pos < start-heap[rightChildIdx].pos then
 			smallest = rightChildIdx
 		end
 
