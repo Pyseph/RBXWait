@@ -80,6 +80,7 @@ game:GetService('RunService').Stepped:Connect(function()
 end)
 
 return function(Time)
-	insert(Time or 0, {coroutine.running(), Time or 0})
+	Time = (type(Time) ~= 'number' or Time <= 0) and 0.001 or Time
+	insert(Time, {coroutine.running(), Time})
 	return coroutine.yield()
 end
