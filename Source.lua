@@ -17,6 +17,6 @@ end)
 
 return function(Time)
 	Time = (type(Time) ~= 'number' or Time < 0) and 0 or Time
-	Yields[#Yields + 1] = {o_clock(), Time, c_running()}
+	table.insert(Yields, {o_clock(), Time, c_running()})
 	return c_yield()
 end
