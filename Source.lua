@@ -1,7 +1,7 @@
 local o_clock = os.clock
 local c_yield = coroutine.yield
 local c_running = coroutine.running
-local c_resume = coroutine.resume
+local c_resume = task.spawn
 
 local Yields = {}
 game:GetService('RunService').Stepped:Connect(function()
