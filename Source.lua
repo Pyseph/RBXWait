@@ -1,22 +1,24 @@
-local o_clock = os.clock
-local c_yield = coroutine.yield
-local c_running = coroutine.running
-local c_resume = task.spawn
+local OsClock = os.clock
+local CoroutineYield = coroutine.yield
+local CoroutineRunning = coroutine.running
+local TaskSpawn = task.spawn
+local TableInsert = table.insert
 
-local Yields = {}
-game:GetService('RunService').Stepped:Connect(function()
-	local Clock = o_clock()
-	for Idx, data in next, Yields do
-		local Spent = Clock - data[1]
-		if Spent >= data[2] then
-			Yields[Idx] = nil
-			c_resume(data[3], Spent, Clock)
+-- Pre-allocate 100 indices
+local Yields = table.create(100)
+game:GetService("RunService").Stepped:Connect(function()
+	local Now = OsClock()
+	for Index, Data in next, Yields do
+		local TimeYielded = Now - Data[1]
+		if TimeYielded >= Data[2] then
+			Yields[Index] = nil
+			TaskSpawn(Data[3], TimeYielded, Now)
 		end
 	end
 end)
 
-return function(Time)
-	Time = (type(Time) ~= 'number' or Time < 0) and 0 or Time
-	table.insert(Yields, {o_clock(), Time, c_running()})
-	return c_yield()
+return function(YieldTime)
+	YieldTime = (type(YieldTime) ~= "number" or YieldTime < 0) and 0 or YieldTime
+	TableInsert(Yields, {OsClock(), YieldTime, CoroutineRunning()})
+	return CoroutineYield()
 end
